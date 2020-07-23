@@ -19,12 +19,10 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class Controller implements Initializable {
     @FXML
@@ -50,6 +48,8 @@ public class Controller implements Initializable {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
+    private Writer writer;
+    private BufferedReader text ;
 
     private boolean authenticated;
     private String nick;
@@ -57,6 +57,7 @@ public class Controller implements Initializable {
     private Stage stage;
     private Stage regStage;
     RegController regController;
+    private String login;
 
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
@@ -71,6 +72,15 @@ public class Controller implements Initializable {
         }
         setTitle(nick);
         textArea.clear();
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream("history_" + login + ".txt.", true), "utf-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        textFile();
     }
 
     @Override
@@ -124,6 +134,7 @@ public class Controller implements Initializable {
                             String result = str.split("\\s")[1];
                             if (result.equals("ok")) {
                                 regController.addMessage("Регистрация прошла успешно");
+
                             } else {
                                 regController.addMessage("Регистрация не получилась, возможно логин или никнейм заняты");
                             }
@@ -154,6 +165,9 @@ public class Controller implements Initializable {
 
                         } else {
                             textArea.appendText(str + "\n");
+                            //Добавление в файл
+                            writer.write(str + "\n");
+                            writer.flush();
                         }
                     }
                 }catch (RuntimeException e)   {
@@ -197,7 +211,8 @@ public class Controller implements Initializable {
         }
 
         try {
-            out.writeUTF(String.format("/auth %s %s", loginField.getText().trim(), passwordField.getText().trim()));
+            this.login = loginField.getText().trim();
+            out.writeUTF(String.format("/auth %s %s", login, passwordField.getText().trim()));
             passwordField.clear();
         } catch (IOException e) {
             e.printStackTrace();
@@ -249,6 +264,27 @@ public class Controller implements Initializable {
 
         try {
             out.writeUTF(String.format("/reg %s %s %s", login, password, nickname));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    // Вывод последних сообщений
+    public void textFile(){
+        try {
+            text= new BufferedReader(new FileReader("history_" + login + ".txt."));
+            String line;
+            List<String> list = new ArrayList<>();
+            while ((line = text.readLine()) !=null){
+                list.add(line+ "\n");
+            }
+            int count = Math.min(10, list.size());
+            String[] history = new String[count];
+            System.arraycopy(list.toArray(), Math.max(0, list.size() - 10), history, 0, count);
+            for (int i = 0; i< count; i++) {
+                textArea.appendText(history[i]);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
