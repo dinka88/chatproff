@@ -5,8 +5,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ClientHandler {
+    private static final Logger logger= Logger.getLogger(ClientHandler.class.getName());
     Server server;
     Socket socket = null;
     DataInputStream in;
@@ -45,7 +48,7 @@ public class ClientHandler {
                                     sendMsg("/authok " + newNick);
                                     nick = newNick;
                                     server.subscribe(this);
-                                    System.out.printf("Клиент %s подключился \n", nick);
+                                    logger.log(Level.INFO,String.format("Клиент %s подключился \n", nick));
                                     socket.setSoTimeout(0);
                                     break;
                                 } else {
@@ -108,7 +111,7 @@ public class ClientHandler {
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
-                    System.out.println("Клиент отключился");
+                    logger.log(Level.INFO,"Клиент отключился");
                     server.unsubscribe(this);
                     try {
                         in.close();
